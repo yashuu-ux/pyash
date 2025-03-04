@@ -1,53 +1,42 @@
-name: Buildozer APK Build
-
+name: CI
 on:
   push:
-    branches:
-      - main  
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
-  build-apk:
-    runs-on: ubuntu-latest  
+  build:
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4  # Updated from v2 to v4
 
-      - name: Set Up Python
-        uses: actions/setup-python@v4
+      # used to cache dependencies with a timeout
+      - name: Get Date
+        id: get-date
+        run: |
+          echo "::set-output name=date::$(/bin/date -u "+%Y%m%d")"
+        shell: bash
+
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v4  # Updated from v2 to v4
         with:
-          python-version: "3.10"
+          path: .buildozer_global
+          key: buildozer-global-${{ hashFiles('buildozer.spec') }} # Replace with your path
 
-      - name: Install Dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y python3-pip git zip unzip openjdk-17-jdk
-          pip install --upgrade pip virtualenv
-          pip install --user buildozer cython
-
-      - name: Add Buildozer to Path
-        run: |
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Install Android SDK Components  # ✅ Fix for AIDL Not Found
-        run: |
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-      - name: Verify AIDL Installation
-        run: |
-          ls $ANDROID_SDK_ROOT/build-tools/34.0.0/
-          if [ ! -f "$ANDROID_SDK_ROOT/build-tools/34.0.0/aidl" ]; then echo "AIDL not found!"; exit 1; fi
-
-      - name: Initialize Buildozer (If Needed)
-        run: |
-          if [ ! -f buildozer.spec ]; then buildozer init; fi
-
-      - name: Build APK
-        run: buildozer android debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/cache@v4  # Updated from v2 to v4
         with:
-          name: Built APK
-          path: bin/*.apk
+          path: .buildozer
+          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
+
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          command: buildozer android debug
+          buildozer_version: master
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4  # Updated from v2 to v4
+        with:
+          name: package
+          path: ${{ steps.buildozer.outputs.filename }}
