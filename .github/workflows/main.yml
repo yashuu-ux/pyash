@@ -36,6 +36,9 @@ jobs:
           sudo mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
           sudo rm commandlinetools-linux-11076708_latest.zip
 
+          # Create licenses directory before writing license keys
+          sudo mkdir -p /opt/android-sdk/licenses
+          
           # Accept licenses
           echo -e "84831b9409646a918e30573bab4c9c91346d8abd\n24333f8a63b6825ea9c5514f83c2829b004d1fee" | sudo tee /opt/android-sdk/licenses/android-sdk-license > /dev/null
 
