@@ -1,47 +1,36 @@
-name: CI
+name: Buildozer APK Build
+
 on:
   push:
-    branches: [ main ]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    branches:
+      - main  # Run workflow on push to the main branch
+  workflow_dispatch:  # Allows manual trigger
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest  # Use an Ubuntu runner
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Python
+        uses: actions/setup-python@v3
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y python3-pip python3-setuptools python3-wheel openjdk-17-jdk
-          pip install --upgrade pip cython buildozer
-
-      - name: Check buildozer.spec
-        run: ls -lah buildozer.spec || echo "buildozer.spec not found!"
-
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v4
-        with:
-          path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
-
-      - name: Cache Buildozer directory
-        uses: actions/cache@v4
-        with:
-          path: .buildozer
-          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          sudo apt install -y python3-pip git zip unzip openjdk-17-jdk
+          pip install --upgrade pip virtualenv
+          pip install buildozer cython
 
       - name: Build APK
-        run: buildozer -v android debug
-
-      - name: Check output files
-        run: ls -lah bin/ || echo "No APK found in bin/"
+        run: |
+          buildozer android debug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: package
+          name: Built APK
           path: bin/*.apk
