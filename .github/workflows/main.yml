@@ -18,15 +18,20 @@ jobs:
           sudo apt install -y python3-pip git zip unzip openjdk-17-jdk
           pip install --upgrade pip virtualenv
           pip install --user buildozer cython
-      
+
       - name: Set Environment Variables
         run: |
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Install Android SDK Components
+      - name: Install Android SDK Components  # ✅ Fix for AIDL Not Found
         run: |
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Verify AIDL Installation
+        run: |
+          ls $ANDROID_SDK_ROOT/build-tools/34.0.0/
+          if [ ! -f "$ANDROID_SDK_ROOT/build-tools/34.0.0/aidl" ]; then echo "❌ AIDL not found!"; exit 1; fi
 
       - name: Initialize Buildozer (If Needed)
         run: |
