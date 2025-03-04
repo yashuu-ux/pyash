@@ -29,8 +29,10 @@ jobs:
         run: |
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Accept Android SDK Licenses  # ✅ Fix for License Issue
-        run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
+      - name: Install Android SDK Build-Tools  # ✅ Fix for AIDL Not Found
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Initialize Buildozer (If Needed)
         run: |
@@ -40,7 +42,7 @@ jobs:
         run: buildozer android debug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4  # ✅ Correct version
+        uses: actions/upload-artifact@v4
         with:
           name: Built APK
           path: bin/*.apk
