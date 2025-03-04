@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest  
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set Up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
@@ -27,8 +27,10 @@ jobs:
 
       - name: Add Buildozer to Path
         run: |
-          export PATH=$HOME/.local/bin:$PATH
-          echo "PATH=$PATH" >> $GITHUB_ENV
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Accept Android SDK Licenses  # ✅ Fix for License Issue
+        run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Initialize Buildozer (If Needed)
         run: |
@@ -38,7 +40,7 @@ jobs:
         run: buildozer android debug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4  # ✅ Fixed version
+        uses: actions/upload-artifact@v4  # ✅ Correct version
         with:
           name: Built APK
           path: bin/*.apk
