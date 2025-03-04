@@ -50,14 +50,15 @@ jobs:
 
       - name: Install Android Platform Tools & AIDL
         run: |
-          yes | sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;25.1.8937393"
+          yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --install \
+          "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;25.1.8937393"
 
       - name: Verify AIDL Installation
         run: |
           if [ -f "/opt/android-sdk/build-tools/34.0.0/aidl" ]; then
-            echo "AIDL is installed correctly."
+            echo "✅ AIDL is installed correctly."
           else
-            echo "ERROR: AIDL not found!"
+            echo "❌ ERROR: AIDL not found!"
             exit 1
           fi
 
