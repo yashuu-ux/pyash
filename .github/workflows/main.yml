@@ -8,25 +8,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4  # Updated from v2 to v4
+      - uses: actions/checkout@v4
 
-      # used to cache dependencies with a timeout
-      - name: Get Date
-        id: get-date
+      - name: Install Dependencies
         run: |
-          echo "::set-output name=date::$(/bin/date -u "+%Y%m%d")"
-        shell: bash
+          sudo apt update
+          sudo apt install -y python3-pip git zip unzip openjdk-17-jdk
+          pip install --upgrade pip virtualenv
+          pip install --user buildozer cython
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install Android SDK Components
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Cache Buildozer global directory
-        uses: actions/cache@v4  # Updated from v2 to v4
+        uses: actions/cache@v4
         with:
           path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }} # Replace with your path
+          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
 
-      - uses: actions/cache@v4  # Updated from v2 to v4
+      - uses: actions/cache@v4
         with:
           path: .buildozer
-          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
+          key: ${{ runner.os }}-${{ github.run_id }}-${{ hashFiles('buildozer.spec') }}
 
       - name: Build with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
@@ -36,7 +42,7 @@ jobs:
           buildozer_version: master
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4  # Updated from v2 to v4
+        uses: actions/upload-artifact@v4
         with:
           name: package
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
