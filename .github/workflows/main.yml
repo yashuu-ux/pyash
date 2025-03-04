@@ -8,70 +8,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4  # ✅ Updated version
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      # Used to cache dependencies with a timeout
-      - name: Get Date
-        id: get-date
-        run: |
-          echo "date=$(date -u +'%Y%m%d')" >> $GITHUB_ENV
-        shell: bash
-
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v4  # ✅ Updated version
+      - name: Set Up Python
+        uses: actions/setup-python@v4
         with:
-          path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
-
-      - uses: actions/cache@v4  # ✅ Updated version
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-${{ env.date }}-${{ hashFiles('buildozer.spec') }}
+          python-version: "3.10"
 
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y python3-pip git zip unzip openjdk-17-jdk
-          pip install --upgrade pip virtualenv
+          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip
+          pip install --upgrade pip
           pip install --user buildozer cython
+
+      - name: Accept Android Licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Install Android SDK Components
+        run: |
+          yes | sdkmanager --install "build-tools;34.0.0" "platforms;android-34" "platform-tools" "ndk;25.1.8937393"
+          yes | sdkmanager --licenses
 
       - name: Add Buildozer to Path
         run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install Android SDK Components  # ✅ Fix AIDL Not Found
-        run: |
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          curl -fo sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip
-          unzip sdk-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
-          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
-
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
-          echo "$ANDROID_SDK_ROOT/emulator" >> $GITHUB_PATH
-
-          # ✅ Accept SDK Licenses Automatically
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
-          # ✅ Install Required SDK Components
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;36.0.0-rc5"
-
-      - name: Verify AIDL Installation
-        run: |
-          ls $ANDROID_SDK_ROOT/build-tools/36.0.0-rc5/
-          if [ ! -f "$ANDROID_SDK_ROOT/build-tools/36.0.0-rc5/aidl" ]; then echo "AIDL not found!"; exit 1; fi
-
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          command: buildozer android debug
-          buildozer_version: master
+      - name: Build APK with Buildozer
+        run: buildozer -v android debug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4  # ✅ Updated version
+        uses: actions/upload-artifact@v4
         with:
-          name: Built APK
+          name: app-release
           path: bin/*.apk
