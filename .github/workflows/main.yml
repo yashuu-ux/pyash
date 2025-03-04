@@ -3,12 +3,12 @@ name: Buildozer APK Build
 on:
   push:
     branches:
-      - main  # Run workflow on push to the main branch
-  workflow_dispatch:  # Allows manual trigger
+      - main  
+  workflow_dispatch:
 
 jobs:
   build-apk:
-    runs-on: ubuntu-latest  # Use an Ubuntu runner
+    runs-on: ubuntu-latest  
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -23,14 +23,22 @@ jobs:
           sudo apt update
           sudo apt install -y python3-pip git zip unzip openjdk-17-jdk
           pip install --upgrade pip virtualenv
-          pip install buildozer cython
+          pip install --user buildozer cython
+
+      - name: Add Buildozer to Path
+        run: |
+          export PATH=$HOME/.local/bin:$PATH
+          echo "PATH=$PATH" >> $GITHUB_ENV
+
+      - name: Initialize Buildozer (If Needed)
+        run: |
+          if [ ! -f buildozer.spec ]; then buildozer init; fi
 
       - name: Build APK
-        run: |
-          buildozer android debug
+        run: buildozer android debug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # ✅ Fixed version
         with:
           name: Built APK
           path: bin/*.apk
