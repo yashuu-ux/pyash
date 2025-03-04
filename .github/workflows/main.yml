@@ -1,4 +1,5 @@
-name: CI
+name: Build APK with Buildozer
+
 on:
   push:
     branches: [ main ]
@@ -8,7 +9,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: |
@@ -16,33 +18,25 @@ jobs:
           sudo apt install -y python3-pip git zip unzip openjdk-17-jdk
           pip install --upgrade pip virtualenv
           pip install --user buildozer cython
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+      - name: Set Environment Variables
+        run: |
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
       - name: Install Android SDK Components
         run: |
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v4
-        with:
-          path: .buildozer_global
-          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
+      - name: Initialize Buildozer (If Needed)
+        run: |
+          if [ ! -f buildozer.spec ]; then buildozer init; fi
 
-      - uses: actions/cache@v4
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-${{ github.run_id }}-${{ hashFiles('buildozer.spec') }}
+      - name: Build APK
+        run: buildozer android debug
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          command: buildozer android debug
-          buildozer_version: master
-
-      - name: Upload artifacts
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: package
+          name: Built APK
           path: bin/*.apk
